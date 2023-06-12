@@ -13,8 +13,10 @@ import org.firstinspires.ftc.teamcode.ObjectClasses.Gyro;
 
 @TeleOp(name = "Chassis Bot", group = "Basic Chassis")
 public class BasicChassis extends LinearOpMode{
+
     DriveTrain MecDrive = new DriveTrain(this);
     Gyro Gyro = new Gyro(this);
+
 //    GamepadHandling GamePads = new GamepadHandling(this);
     private final ElapsedTime runtime = new ElapsedTime();
 
@@ -26,6 +28,8 @@ public class BasicChassis extends LinearOpMode{
 
     @Override
     public void runOpMode() {
+
+        //These should be unnecessary...
         Gamepad currentGamepad1 = new Gamepad();
         Gamepad currentGamepad2 = new Gamepad();
         Gamepad previousGamepad1 = new Gamepad();
