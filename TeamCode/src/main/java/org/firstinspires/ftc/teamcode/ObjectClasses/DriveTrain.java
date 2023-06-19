@@ -33,7 +33,7 @@ public class DriveTrain {
     private final double DRIVE_GEAR_REDUCTION = 1.0;
     private final double WHEEL_DIAMETER_INCHES = 3.93701;
     private final double COUNTS_PER_INCH = (TICKS_PER_REV * DRIVE_GEAR_REDUCTION) / (WHEEL_DIAMETER_INCHES * 3.1415);
-    private final double MAX_SPEED_TICK_PER_SEC = MAX_MOTOR_SPEED_RPS * TICKS_PER_REV;
+    public final double MAX_SPEED_TICK_PER_SEC = MAX_MOTOR_SPEED_RPS * TICKS_PER_REV;
 
     /* Public OpMode objects and variables. */
     public DcMotorEx driveMotor[] = new DcMotorEx[4]; // {leftfront, rightfront, leftback, rightback}
@@ -101,10 +101,12 @@ public class DriveTrain {
         activeOpMode.telemetry.addData("tip angle", Math.round(tiltAngle.get(0)));
         activeOpMode.telemetry.addData("tip recovery", tipRecoveryFlag);
 
+        //turning = turnToAngleCalc(turnToRight,turnToStraight,turnToLeft,turntoBack,turnInput,angle);
+        // fieldOrientedControl(driveInput, strafeInput,auto drive inputs, auto strafe inputs, angle.get(0));
         if (Math.abs(tiltAngle.get(0)) > MAX_TIP || tipRecoveryFlag){
             tipRecoveryFlag = tipRecovery(tiltAngle.get(0), tiltSpeed.get(0), tiltAccel.get(0));
         }
-        else if (Math.abs(driveInput) > STICK_DEAD_ZONE || Math.abs(strafeInput) > STICK_DEAD_ZONE
+        else if (Math.abs(driveInput) > STICK_DEAD_ZONE || Math.abs(strafeInput) > STICK_DEAD_ZONE // delete condition, always calculate driver inputs
                 || Math.abs(turnInput) > STICK_DEAD_ZONE){
             if (driverGamepad.right_bumper) {
                 fieldOrientedControl(driveInput, strafeInput, turnInput, angle.get(0));
@@ -117,14 +119,15 @@ public class DriveTrain {
             }
             mecanumDriveSpeedControl();
         }
-        else if (turntoBack || turnToLeft || turnToRight || turnToStraight || turning){
+        else if (turntoBack || turnToLeft || turnToRight || turnToStraight || turning){ // delete condition, always calculate
             turning = turnToAngleCalc(turnToRight,turnToStraight,turnToLeft,turntoBack,angle);
             if (turning) {mecanumDriveSpeedControl();}
         }
+        // else if (some auto drive command && not left/right stick command) {auto drive method}
         else {
-            drive = 0;
-            strafe = 0;
-            turn = 0;
+            drive = 0; // delete line
+            strafe = 0; // delete line
+            turn = 0; // delete line
             mecanumDriveSpeedControl();
         }
 
@@ -139,22 +142,24 @@ public class DriveTrain {
     /** fieldOrientedControl takes inputs from the gamepad and the angle of the robot.
      * These inputs are used to calculate the drive, strafe and turn inputs needed for the MecanumDrive method.
      */
-    public void fieldOrientedControl (double forward, double sideways, double turning, double robotAngle){
+    public void fieldOrientedControl (double forward, double sideways, double turning, double robotAngle){  // remove turning input
         // Consider moving these constants to top of class
         robotAngle = robotAngle * Math.PI / 180;
         double DRIVE_SPEED_FACTOR = 1.0;
         double STRAFE_SPEED_FACTOR = 1.0;
-        double TURN_SPEED_FACTOR = 1.0;
-        double driveSquared;
-        double strafeSquared;
+        double TURN_SPEED_FACTOR = 1.0; // delete line
+
+        // if (Math.abs(forward) < STICK_DEAD_ZONE) {forward = 0;}
+        // if (Math.abs(sideways) < STICK_DEAD_ZONE) {sideways = 0;}
 
         double magnitude = Math.sqrt(Math.pow(forward, 2) + Math.pow(sideways, 2));
         double driveAngle = Math.copySign(Math.acos(forward/magnitude), Math.asin(-sideways));
         double deltaAngle = robotAngle-driveAngle;
 
+
         drive = DRIVE_SPEED_FACTOR * magnitude * Math.cos(deltaAngle);
         strafe = STRAFE_SPEED_FACTOR * magnitude * Math.sin(deltaAngle);
-        turn = TURN_SPEED_FACTOR * turning;
+        turn = TURN_SPEED_FACTOR * turning; // Delete line
 
         /*
         driveSquared = Math.pow(forward * Math.cos(robotAngle),2) + Math.pow(sideways * Math.sin(robotAngle), 2);
@@ -190,6 +195,31 @@ public class DriveTrain {
         for (int i = 0; i < 4; i++ ){
             driveMotor[i].setVelocity(driveMotorTargetSpeed[i]);
             // this may not be needed: driveMotor[i].setPower(driveMotorPower[i]);
+            caption = "Motor " + i + " Target Speed";
+            activeOpMode.telemetry.addData(caption, Math.round(100 * driveMotorTargetSpeed[i] / TICKS_PER_REV));
+            activeOpMode.telemetry.addData("Actual Motor Speed", Math.round(100 * driveMotor[i].getVelocity() / TICKS_PER_REV));
+        }
+    }
+
+    public void mecanumDrivePowerControl (){
+        String caption = new String();
+        String angleValues = new String();
+
+        // Put Mecanum Drive math and motor commands here.
+        double dPercent = abs(drive) / (abs(drive) + abs(strafe) + abs(turn));
+        double sPercent = abs(strafe) / (abs(drive) + abs(turn) + abs(strafe));
+        double tPercent = abs(turn) / (abs(drive) + abs(turn) + abs(strafe));
+        driveMotorPower[0] = ((drive * dPercent) + (strafe * sPercent) + (turn * tPercent));
+        driveMotorPower[1] = MAX_SPEED_TICK_PER_SEC * ((drive * dPercent) + (-strafe * sPercent) + (-turn * tPercent));
+        driveMotorPower[2] = MAX_SPEED_TICK_PER_SEC * ((drive * dPercent) + (-strafe * sPercent) + (turn * tPercent));
+        driveMotorPower[3] = MAX_SPEED_TICK_PER_SEC * ((drive * dPercent) + (strafe * sPercent) + (-turn * tPercent));
+
+        activeOpMode.telemetry.addData("drive input", drive);
+        activeOpMode.telemetry.addData("strafe input", strafe);
+        activeOpMode.telemetry.addData("turn input", turn);
+
+        for (int i = 0; i < 4; i++ ) {
+            driveMotor[i].setPower(driveMotorPower[i]);
             caption = "Motor " + i + " Target Speed";
             activeOpMode.telemetry.addData(caption, Math.round(100 * driveMotorTargetSpeed[i] / TICKS_PER_REV));
             activeOpMode.telemetry.addData("Actual Motor Speed", Math.round(100 * driveMotor[i].getVelocity() / TICKS_PER_REV));
@@ -248,7 +278,16 @@ public class DriveTrain {
         if (angleDelta > 180) {angleDelta -= 360;}
         else if (angleDelta < -180) {angleDelta += 360;}
 
-        if (Math.abs(angleDelta) > ALLOWED_TURN_ERROR){
+        /*
+        if (Math.abs(turnInput) > STICK_DEAD_ZONE) {
+            targetAngle = robotAngle.get(0);
+            turn = turnInput;
+
+            return false;
+        }
+
+         */
+        if (Math.abs(angleDelta) > ALLOWED_TURN_ERROR){ // convert to else if
             turn = - angleDelta * TURN_TO_ANGLE_FACTOR * AUTO_TURN_MAX_SPEED;
             drive = 0;
             strafe = 0;

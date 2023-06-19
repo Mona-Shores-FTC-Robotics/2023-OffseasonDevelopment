@@ -27,7 +27,7 @@ public class Gyro {
    /* local OpMode members. */
 
     HardwareMap hwMap = null;
-    //BNO055IMU imu;
+    // BNO055IMU imu;
     IMU imu;
     private ElapsedTime turnPeriod = new ElapsedTime();
 
@@ -58,6 +58,7 @@ public class Gyro {
     public void init(HardwareMap ahwMap) {
         // Save reference to Hardware map
         hwMap = ahwMap;
+
         /*
         // code for old control hub IMU
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
